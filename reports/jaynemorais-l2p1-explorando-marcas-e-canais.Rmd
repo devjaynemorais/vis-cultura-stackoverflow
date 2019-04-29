@@ -1,0 +1,308 @@
+---
+title: "jaynemorais-comentarios-e-cultura"
+author: "devjaynemorais"
+date: "27 de abril de 2019"
+output:
+    html_document:
+    df_print: paged
+theme: sandstone
+---
+
+    Jayne Morais (Mestrado - FPCC2 - 2019.1)
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#install.packages("RCurl")
+library(tidyverse)
+library(here)
+library(viridis)
+library(RCurl)
+library(plotly)
+#setwd(dirname(getwd()))
+source(here::here("code/import_data.R"))
+theme_set(theme_bw())
+
+knitr::opts_chunk$set(tidy = FALSE,
+                      fig.width = 6,
+                      fig.height = 5)
+
+#getwd()
+```
+
+```{r read}
+dados = read_csv(
+    here::here("data/participation-per-country.csv"),
+    col_types = cols(
+        .default = col_double(),
+        site = col_character(),
+        country = col_character(),
+        geo = col_character(),
+        four_regions = col_character(),
+        eight_regions = col_character(),
+        six_regions = col_character(),
+        `World bank income group 2017` = col_character()
+    )
+) %>% 
+    filter(usuarios > 200)
+glimpse(dados)
+```
+
+Estamos interessados na relação entre quanto as pessoas de diferentes países comentam em questões dos outros. A proporção das pessoas do país que comentou nas questões de outros está medido na variável `comentaram_prop`. 
+
+Considerando essa variável, queremos examinar a relação entre ela e o quão hierárquicas são as relações em um país (`PDI`). Queremos também levar em conta o quanto as pessoas daquele país têm acesso à Internet (`Internet`) e qual o tamanho da base de dados que detectamos daquele país (`usuarios`). 
+
+## Examinando essa relação
+
+Faça uma visualização que usa os princípios de eficácia no projeto de visualizações para facilitar as comparações que você acha que são as mais importantes para entendermos esse contexto. 
+
+    Para esa visualização foi utilizada a região espacial (eixos x e y) para relacionar as variáveis "a proporção de usuários que comentam" em ambos os sites e o "índice de distância de Potência", utilizou-se da luminosidade da cor para enfatizar o número de usuários em geral de ambos os sites, assim como o tamanho do círculo para determinar a proporção de acesso à internet de pessoas de um determinado país.
+
+    É possível observar que existe uma relação entre quanto maior a proporção de usuários que comentam os sites, menor é o índice de distância de potência, ou seja, nas sociedades ondem os usuários mais comentam nos sites, as pessoas tendem a se esforçar para igualar a distribuição de poder.
+    
+    Também percebe-se que há uma relação entre quanto maior o númeo de usuários dos sites, também é maior o número de pessoas que contribuem através de comentários.
+
+```{r read2}
+
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+    geom_smooth(aes(x = PDI, y = comentaram_prop), method = lm, se = FALSE) +
+    geom_point(alpha = 0.7) +
+    theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    #subtitle = "João Pessoa X Campina grande",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+ #ggplotly(analise1)
+analise1
+
+
+```
+
+
+## Outras formas de ver
+
+Em seguida, faça 5 visualizações que usem as mesmas variáveis e também pontos, mas que sejam **menos eficazes** que a que você escolheu acima. 
+
+### 1 - Cor 
+      
+      É importante ter cuidado em relação a escolha das cores na visualização dos gráficos, algumas combinações de cores podem dificultar a leitura, como por exemplo na visualização abaixo, onde as cores verdes estão em uma tonalidade de cor muito próxima, o que dificulta a diferenciação de ambas as cores.
+      
+```{r read3}
+
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_point()+ 
+  scale_colour_gradientn(colours=rainbow(4)) +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Alteração na escala de Cor",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+analise1
+
+```
+
+
+
+### 2 - Preenchimento da Forma
+
+    Outra característica importante que deve-se ter cuidado para a apresentação dos dados em visualizações, é em relação ao preenchimento da forma. Como pode ser percebido no exemplo abaixo, o fato de ao invés de utilizar um preenchimento sólido para os pontos por um preenchimento apenas de contorno dificulta a visualização da variável da quantidade de usuários (log(usuários)) que é representada pela cor, por exemplo.
+    
+```{r read4}
+
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_point(shape=1) +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Alteração na forma dos pontos",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+analise1
+```
+
+### 3 - Utilização do Espaço
+
+    Esse é um caso onde as labels são plotadas no gráfico, ao invés de uma categorização por legenda, dificultando assim, neste caso, a visualização por conta da má utilização do espaço
+    
+```{r read5}
+#install.packages("ggrepel")
+#devtools::install_github("GuangchuangYu/emojifont")
+
+library(ggrepel)
+
+#library(emojifont)
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        label = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_point() +
+  geom_label_repel() +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Alteração na posição das labels",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+
+
+analise1
+```
+
+### 4 - Volume (3D)
+
+    O exemplo abaixo mostra um exemplo de um canal menos eficiente para visualizações, o volume 3D.
+    
+```{r read6}
+#install.packages("fields")
+library(scatterplot3d)
+
+scatterplot3d(dados$PDI, dados$comentaram_prop, dados$Internet, color = log10(dados$usuarios), pch=16, highlight.3d = TRUE, type="h", main="Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet", xlab="Índice de PDI", ylab="Quantidade de usuários que comentam", zlab="Índice proporcional de uso de Internet")
+legend("topleft", inset=.05,      # location and inset
+    bty="n", cex=.7,              # suppress legend box, shrink text 50%
+    title="log10(usuarios)",
+    c("3", "4", "5"), fill=c("red", "#722f37", "black"))
+
+```
+
+### 5 - Saturação Cor 
+    
+    A quantidade de saturação neste caso, dificulta diferenciar os valores da variável relacionada a quantidade de usuários (log(usuarios)).
+  
+```{r read7}
+
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_point(alpha = 0.2) +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Alteração na transparência da Cor",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+
+analise1
+
+```
+
+### 6 - Tamanho 
+
+  A alteração do tamanho da área da forma no exemplo abaixo, dificulta a leitura dos valores da variável Proporção de acesso à Internet, pois foi plotada iniciando com valores menores em um grande tamanho, fazendo com que consequentemente, os tamanho sejam muito próximos e por isso, não permitindo uma boa diferenciação dos valores.
+  
+```{r read8}
+
+analise1 = dados %>% 
+  select(comentaram_prop, PDI, Internet, usuarios) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_point() +
+  scale_size_continuous(range = c(8,15)) +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Alteração no tamanho dos pontos",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+
+analise1
+
+```
+
+## Bônus
+
+Inclua o continente dos países (`six_regions`) na visualização.
+
+    As visualizações abaixo mostram a relação entre as variáveis mencionadas na visualizações anteriores e a adição da região do continente e na outra mostra a relação da média de usuário existentes e a média de usuários que comentam, ambas por região (six_regions). 
+    Na visualização por região continental percebe-se que a Europa central há uma grande quantidade de usuários no site, assim como um alto nível de PDI, diferentemente do sul da Ásia não e além de que nesta última, o acesso à internet é menor.
+    Na visualização em barras: percebe-se que o sul da Ásia ambas as variáveis maiores, enquanto o Oriente Médio ao norte da África concentra-se os valores menores para estas variáveis. Há um possível relação sobre quanto mais usuários existem em uma região, consequentemente existem mais usuários que comentam os sites.
+
+```{r read9}
+
+analise1 = dados %>% 
+  filter(!is.na(six_regions)) %>%
+  select(comentaram_prop, PDI, Internet, usuarios, six_regions) %>%
+  ggplot(aes(
+        x = PDI,
+        y = comentaram_prop,
+        size = Internet,
+        color = log10(usuarios)
+    )) +
+  geom_smooth(aes(x = PDI, y = comentaram_prop), method = lm, se = FALSE) +
+    facet_wrap(~ six_regions) +
+    geom_point(alpha = .7) +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+    labs(
+    title = "Relação de Usuários x Usuários que comentam x PDI x Acesso a Internet",
+    subtitle = "Por Região",
+    y = "Quantidade proporcional de usuários que comentam",
+    x = "PDI" 
+  )
+
+analise1
+
+
+
+analise = dados %>% 
+    filter(!is.na(six_regions)) %>%
+    group_by(six_regions)  %>%
+    summarise(media_usuarios = mean(usuarios), media_comentaram_prop = mean(comentaram_prop)*media_usuarios) %>%
+    ggplot(aes(y = media_usuarios, x = media_comentaram_prop, color = six_regions)) +
+    geom_bar(
+      aes(color = six_regions, fill = six_regions),
+      stat = "identity", position = position_dodge(0.8),
+      width = 50
+    ) +
+    ylab("Média de Usuários por Região") +
+    xlab("Média de Usuários que comentam por Região") +
+    scale_x_continuous(breaks = seq(from = 0, to = 30000, by = 100)) +
+    scale_y_continuous(breaks = seq(from = 0, to = 30000, by = 1000)) +
+    theme(axis.text.x = element_text(color = "grey20", size = 8, angle = 90, hjust = .5, vjust = .5, face = "plain"))
+analise 
+
+
+``` 
